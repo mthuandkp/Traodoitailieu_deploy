@@ -1,0 +1,72 @@
+---
+version: '3.7'
+services:
+  ## Eureka Server
+  discovery-server:
+    image: mthuandkp/discovery-server:v1.0
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  ## Auth-Service Docker Compose Config
+  auth-service:
+      container_name: auth-service
+      image: mthuandkp/auth-service:v1.0
+      ports:
+        - "8081:8081"
+      environment:
+        - SPRING_PROFILES_ACTIVE=docker
+      depends_on:
+        - discovery-server
+
+  ## User-Service Docker Compose Config
+  user-service:
+    container_name: user-service
+    image: mthuandkp/user-service:v1.0
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - discovery-server
+
+  api-gateway:
+    container_name: api-gateway
+    image: mthuandkp/api-gateway:v1.0
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  ## Postgres Docker Compose Config
+  postgres-posts:
+      container_name: postgres-posts
+      image: postgres
+      environment:
+        POSTGRES_DB: posts-service
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: 123456
+        PGDATA: /data/postgres
+      volumes:
+        - ./postgres-posts:/data/postgres
+      expose:
+        - "5431"
+      ports:
+        - "5431:5431"
+      command: -p 5431
+      restart: always
+
+  ## Posts-Service Docker Compose Config
+  posts-service:
+    container_name: posts-service
+    image: mthuandkp/posts-service:v1.0
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-posts:5431/posts-service
+    depends_on:
+      - discovery-server
+      - postgres-posts
